@@ -20,5 +20,10 @@ namespace ISIP123_Soldatov_bd
     
         public virtual Part Part { get; set; }
         public virtual Player Player { get; set; }
+        public Purchase(int playerID, int partID) 
+        {
+            PlayerID = playerID;
+            PartID = partID;
+        }
     }
 }
