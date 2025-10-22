@@ -15,16 +15,54 @@ namespace ISIP123_Soldatov_bd
     public partial class Player
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
+
+    
+        public int PlayerID { get; set; }
+        private string _playerName;
+        public string PlayerName
+        {
+            get => _playerName;
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    throw new ArgumentException("Имя игрока не может быть пустым");
+                }
+                _playerName = value;
+            }
+        }
+        private decimal _balance;
+
+        public decimal Balance
+        {
+            get => _balance;
+            set
+            {
+                if (value < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(Balance), "Текущий баланс не может быть отрицательным.");
+                }
+            }
+        }
+    
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<Purchase> Purchase { get; set; }
+        public Player(string playerName, decimal balance)
+        {
+            if (balance < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(balance), "Начальный баланс не может быть отрицательным.");
+            }
+            PlayerName = playerName;
+            Balance = balance;
+        }
         public Player()
         {
             this.Purchase = new HashSet<Purchase>();
         }
-    
-        public int PlayerID { get; set; }
-        public string PlayerName { get; set; }
-        public decimal Balance { get; set; }
-    
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<Purchase> Purchase { get; set; }
+        public void UpdateBalance(decimal amount)
+        {
+            Balance += amount;
+        }
     }
 }

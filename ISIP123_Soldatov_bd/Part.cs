@@ -15,10 +15,6 @@ namespace ISIP123_Soldatov_bd
     public partial class Part
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
-        public Part()
-        {
-            this.Purchase = new HashSet<Purchase>();
-        }
     
         public int PartID { get; set; }
         private string _partName;
@@ -79,8 +75,13 @@ namespace ISIP123_Soldatov_bd
         {
             PartName = partName;
             BuyPrice = buyPrice;
-            RepairPrice = repairPrice;
-            _quantity = quantity;
+            RepairPrice = repairPrice;  
+            Quantity = quantity;
         }
+        public Part()
+        {
+            this.Purchase = new HashSet<Purchase>();
+        }
+
     }
 }
