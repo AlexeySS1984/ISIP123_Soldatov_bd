@@ -21,12 +21,66 @@ namespace ISIP123_Soldatov_bd
         }
     
         public int PartID { get; set; }
-        public string PartName { get; set; }
-        public decimal BuyPrice { get; set; }
-        public decimal RepairPrice { get; set; }
-        public int InitialStock { get; set; }
-    
+        private string _partName;
+        public string PartName
+        {
+            get => _partName;
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    throw new ArgumentException("Название детали не может быть пустым.");
+                }
+                _partName = value;
+            }
+        }
+        private decimal _buyPrice;
+        public decimal BuyPrice
+        {
+            get => _buyPrice;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(BuyPrice), "Общая стоимость должна быть положительной.");
+                }
+                _buyPrice = value;
+            }
+        }
+        private decimal _repairPrice;
+        public decimal RepairPrice
+        {
+            get => _repairPrice;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(RepairPrice), "Стоимость ремонта должна быть положительной.");
+                }
+                _repairPrice = value;
+            }
+        }
+        private int _quantity;
+        public int Quantity
+        {
+            get => _quantity;
+            set
+            {
+                if (value < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(Quantity), "Количество не может быть отрицательным.");
+                }
+                _quantity = value;
+            }
+        }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<Purchase> Purchase { get; set; }
+        public Part (string partName, decimal buyPrice, decimal repairPrice, int quantity)
+        {
+            PartName = partName;
+            BuyPrice = buyPrice;
+            RepairPrice = repairPrice;
+            _quantity = quantity;
+        }
     }
 }
