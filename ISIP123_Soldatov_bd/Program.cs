@@ -10,6 +10,7 @@ namespace ISIP123_Soldatov_bd
     {
         static void Main(string[] args)
         {
+
         }
     }
 }
