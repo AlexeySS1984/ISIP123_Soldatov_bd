@@ -16,10 +16,45 @@ namespace ISIP123_Soldatov_bd
     {
         public int PenaltyID { get; set; }
         public Nullable<int> OrderID { get; set; }
-        public string PenaltyType { get; set; }
-        public decimal PenaltyAmount { get; set; }
+        private string _penaltyType;
+        public string PenaltyType
+        {
+            get => _penaltyType;
+            set
+            {
+                // Ограничение типа штрафа
+                var allowedTypes = new List<string> { "Отказ в обслуживании", "Неправильный ремонт" };
+                if (string.IsNullOrWhiteSpace(value) || !allowedTypes.Contains(value))
+                {
+                    throw new ArgumentException($"Недопустимый тип штрафа. Допустимые: {string.Join(", ", allowedTypes)}.");
+                }
+                _penaltyType = value;
+            }
+        }
+
+        private decimal _penaltyAmount;
+        public decimal PenaltyAmount
+        {
+            get => _penaltyAmount;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(PenaltyAmount), "Сумма штрафа должна быть положительной.");
+                }
+                _penaltyAmount = value;
+            }
+        }
         public System.DateTime PenaltyDate { get; set; }
     
         public virtual CustomerOrders CustomerOrders { get; set; }
+        public Penalties(Nullable<int> orderID, string penaltyType, decimal penaltyAmount)
+        {
+            OrderID = orderID;
+            PenaltyType = penaltyType;
+            PenaltyAmount = penaltyAmount;
+            PenaltyDate = DateTime.Now;
+        }
+        public Penalties() { }
     }
 }

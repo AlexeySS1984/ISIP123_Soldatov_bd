@@ -54,6 +54,7 @@
     <Compile Include="Balance.cs">
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
+    <Compile Include="ServiceManager.cs" />
     <Compile Include="Core.cs" />
     <Compile Include="CustomerOrders.cs">
       <DependentUpon>Model1.tt</DependentUpon>

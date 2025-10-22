@@ -15,20 +15,66 @@ namespace ISIP123_Soldatov_bd
     public partial class CustomerOrders
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
-        public CustomerOrders()
-        {
-            this.Penalties = new HashSet<Penalties>();
-        }
     
         public int OrderID { get; set; }
-        public string CustomerName { get; set; }
+        private string _customerName;
+        public string CustomerName
+        {
+            get => _customerName;
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    throw new ArgumentException("Имя клиента не может быть пустым.");
+                }
+                _customerName = value;
+            }
+        }
+
         public int BrokenPartID { get; set; }
-        public decimal RepairCost { get; set; }
-        public string OrderStatus { get; set; }
+
+        private decimal _repairCost;
+        public decimal RepairCost
+        {
+            get => _repairCost;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(RepairCost), "Стоимость ремонта должна быть положительной.");
+                }
+                _repairCost = value;
+            }
+        }
+
+        private string _orderStatus;
+        public string OrderStatus
+        {
+            get => _orderStatus;
+            set
+            {
+                // Ограничение статуса
+                var allowedStatuses = new List<string> { "Принят", "Отказано", "Выполнен", "Ошибка" };
+                if (string.IsNullOrWhiteSpace(value) || !allowedStatuses.Contains(value))
+                {
+                    throw new ArgumentException($"Недопустимый статус заказа. Допустимые: {string.Join(", ", allowedStatuses)}.");
+                }
+                _orderStatus = value;
+            }
+        }
         public System.DateTime OrderDate { get; set; }
     
         public virtual PartsInventory PartsInventory { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<Penalties> Penalties { get; set; }
+        public CustomerOrders(string customerName, int brokenPartID, decimal repairCost, string orderStatus = "Принят")
+        {
+            this.Penalties = new HashSet<Penalties>();
+            CustomerName = customerName;
+            BrokenPartID = brokenPartID;
+            RepairCost = repairCost;
+            OrderStatus = orderStatus;
+            OrderDate = DateTime.Now;
+        }
     }
 }

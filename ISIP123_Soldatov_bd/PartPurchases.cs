@@ -16,11 +16,49 @@ namespace ISIP123_Soldatov_bd
     {
         public int PurchaseID { get; set; }
         public int PartID { get; set; }
-        public int Quantity { get; set; }
-        public decimal TotalCost { get; set; }
+        private int _quantity;
+        public int Quantity
+        {
+            get => _quantity;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(Quantity), "Количество закупки должно быть положительным.");
+                }
+                _quantity = value;
+            }
+        }
+
+        private decimal _totalCost;
+        public decimal TotalCost
+        {
+            get => _totalCost;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(TotalCost), "Общая стоимость должна быть положительной.");
+                }
+                _totalCost = value;
+            }
+        }
         public System.DateTime PurchaseDate { get; set; }
         public Nullable<System.DateTime> DeliveryDate { get; set; }
     
         public virtual PartsInventory PartsInventory { get; set; }
+        public PartPurchases(int partID, int quantity, decimal totalCost, int deliveryDelayCars = 2)
+        { 
+            PartID = partID;
+            Quantity = quantity;
+            TotalCost = totalCost;
+            PurchaseDate = DateTime.Now;
+            DeliveryDate = DateTime.Now.AddDays(deliveryDelayCars * 0.1); ;
+        }
+        public PartPurchases() { }
+        public void UpdateDeliveryDate(DateTime newDeliveryDate)
+        {
+            DeliveryDate = newDeliveryDate;
+        }
     }
 }

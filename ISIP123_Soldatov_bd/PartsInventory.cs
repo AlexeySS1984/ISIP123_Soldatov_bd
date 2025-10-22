@@ -15,20 +15,59 @@ namespace ISIP123_Soldatov_bd
     public partial class PartsInventory
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
-        public PartsInventory()
-        {
-            this.CustomerOrders = new HashSet<CustomerOrders>();
-            this.PartPurchases = new HashSet<PartPurchases>();
-        }
-    
         public int PartID { get; set; }
-        public string PartName { get; set; }
-        public int Quantity { get; set; }
-        public decimal CostPerUnit { get; set; }
-    
+        private string _partName;
+        public string PartName
+        {
+            get => _partName;
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    throw new ArgumentException("Название детали не может быть пустым.");
+                }
+                _partName = value;
+            }
+        }
+        private int _quantity;
+        public int Quantity
+        {
+            get => _quantity;
+            set
+            {
+                if (value < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(Quantity), "Количество не может быть отрицательным.");
+                }
+                _quantity = value;
+            }
+        }
+
+        private decimal _costPerUnit;
+        public decimal CostPerUnit
+        {
+            get => _costPerUnit;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(CostPerUnit), "Стоимость за единицу должна быть положительной.");
+                }
+                _costPerUnit = value;
+            }
+        }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<CustomerOrders> CustomerOrders { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<PartPurchases> PartPurchases { get; set; }
+        public PartsInventory(string partName, int quantity, decimal costPerUnit)
+        {
+            this.CustomerOrders = new HashSet<CustomerOrders>();
+            this.PartPurchases = new HashSet<PartPurchases>();
+            PartName = partName;
+            Quantity = quantity;
+            CostPerUnit = costPerUnit;
+        }
+        public PartsInventory() { }
     }
 }
