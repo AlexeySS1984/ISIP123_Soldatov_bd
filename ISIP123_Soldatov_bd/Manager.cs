@@ -2,29 +2,36 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class ServiceManager
 {
     private readonly AutoServiceNoNeuroEntities _dbContext;
 
     private int _carsProcessedSincePurchase = 0;
-    string name;
+    private string _playerName;
+    private const decimal REFUSAL_PENALTY = 200m;
+    private const decimal MISTAKE_PENALTY_MULTIPLIER = 3m; 
+    private const int DELIVERY_THRESHOLD = 2; 
+
     public ServiceManager()
     {
         _dbContext = new AutoServiceNoNeuroEntities();
         Console.Write("Введите имя игрока: ");
-        name = Console.ReadLine();
-        InitializeDatabaseIfEmpty(name);
+        _playerName = Console.ReadLine();
+        InitializeDatabaseIfEmpty(_playerName);
     }
 
     private void InitializeDatabaseIfEmpty(string name)
     {
+
         if (!_dbContext.Part.Any())
         {
             _dbContext.Part.Add(new Part("Масляный фильтр", 50m, 10m, 10));
             _dbContext.Part.Add(new Part("Тормозные колодки", 150m, 50m, 5));
+            _dbContext.Part.Add(new Part("Свеча зажигания", 30m, 10m, 15));
+            _dbContext.Part.Add(new Part("Аккумулятор", 500m, 100m, 2));
+            _dbContext.Part.Add(new Part("Ремень ГРМ", 300m, 150m, 3));
+            _dbContext.SaveChanges();
         }
         if (!_dbContext.Player.Any())
         {
@@ -35,154 +42,202 @@ public class ServiceManager
             _dbContext.SaveChanges();
             Console.WriteLine("Начальные данные созданы.");
         }
-        else 
+        else
         {
-            Console.WriteLine("Здравствуйте, " + name);
+            var existingPlayer = _dbContext.Player.FirstOrDefault();
+            if (existingPlayer != null)
+            {
+                _playerName = existingPlayer.PlayerName;
+            }
+            Console.WriteLine("Здравствуйте, " + _playerName);
         }
+    }
+
+    private Player GetCurrentPlayer()
+    {
+        return _dbContext.Player.FirstOrDefault(p => p.PlayerName == _playerName)
+            ?? _dbContext.Player.FirstOrDefault();
     }
 
     public decimal GetCurrentBalance()
     {
-        // Берем первую (и единственную) запись из таблицы Balance
-        return _dbContext.Player.FirstOrDefault()?.Balance ?? 0m;
+        return GetCurrentPlayer()?.Balance ?? 0m;
     }
 
     public List<Part> GetPart()
     {
-        // Получаем все записи из таблицы PartsInventory
         return _dbContext.Part.ToList();
     }
 
-    public (bool Success, string Message) ProcessCustomer(/*CustomerOrders newOrder, */string action, int partIdToUseForRepair = -1)
+    public class ClientCar
     {
-        CheckAndProcessDeliveries();
-        _carsProcessedSincePurchase++;
+        public Part BrokenPart { get; set; }
+        public decimal TotalRepairCost { get; set; }
+    }
 
-        try
+    public ClientCar GenerateNewClientCar()
+    {
+        var allParts = _dbContext.Part.ToList();
+        if (!allParts.Any())
         {
-            if (action.Equals("Отказать", StringComparison.OrdinalIgnoreCase))
+            return null;
+        }
+
+        Random rand = new Random();
+        int index = rand.Next(allParts.Count);
+        Part brokenPart = allParts[index];
+
+        decimal totalCost = brokenPart.BuyPrice + brokenPart.RepairPrice;
+
+        return new ClientCar
+        {
+            BrokenPart = brokenPart,
+            TotalRepairCost = totalCost
+        };
+    }
+
+    public bool HandleClient(ClientCar car, bool acceptRepair)
+    {
+        Player player = GetCurrentPlayer();
+        if (player == null) return false;
+
+        string partName = car.BrokenPart.PartName;
+        decimal totalCost = car.TotalRepairCost;
+        Part partInStock = _dbContext.Part.FirstOrDefault(p => p.PartName == partName);
+        bool success = false;
+
+        Console.WriteLine($"\n--- Обработка клиента ---");
+
+        if (acceptRepair)
+        {
+            if (partInStock != null && partInStock.InitialStock > 0)
             {
-                //ProcessPenalty(newOrder.OrderID, "Отказ в обслуживании", 100m);
-                //newOrder.OrderStatus = "Отказано";
-                //_dbContext.CustomerOrders.Add(newOrder);
-                Player editPlayer = Core.Context.Player.First(u => u.PlayerName.Contains("Кузьмин"));
-                _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
-                return (true, "Клиент отказан. Выплачен штраф 100 ден.ед.");
+                partInStock.InitialStock--;
+                player.UpdateBalance(totalCost); 
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"Ремонт '{partName}' выполнен успешно! Получено: {totalCost:C}.");
+                Console.ResetColor();
+                success = true;
             }
-
-            if (action.Equals("Принять", StringComparison.OrdinalIgnoreCase))
+            else
             {
-                var partToUse = _dbContext.PartsInventory.FirstOrDefault(p => p.PartID == partIdToUseForRepair);
 
-                if (partToUse == null || partToUse.Quantity < 1)
-                {
-                    ApplyErrorPenalty(newOrder, "деталь для ремонта отсутствует на складе");
-                    return (false, $"ОШИБКА: Детали с ID {partIdToUseForRepair} нет на складе! Выплачен крупный штраф.");
-                }
+                decimal penalty = totalCost * MISTAKE_PENALTY_MULTIPLIER;
+                player.UpdateBalance(-penalty);
 
-                if (partToUse.PartID == newOrder.BrokenPartID)
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"ОШИБКА! Приняли заказ на '{partName}', но детали нет.");
+                Console.WriteLine($"Клиент недоволен. Возмещение ущерба: {penalty:C}.");
+
+                var availableParts = _dbContext.Part.Where(p => p.InitialStock > 0 && p.PartName != partName).ToList();
+                if (availableParts.Any())
                 {
-                    partToUse.Quantity--;
-                    UpdateBalance(newOrder.RepairCost);
-                    newOrder.OrderStatus = "Выполнен";
-                    _dbContext.CustomerOrders.Add(newOrder);
-                    _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
-                    return (true, $"Ремонт успешен! Получено: {newOrder.RepairCost} ден.ед.");
+                    Random rand = new Random();
+                    Part wrongPart = availableParts[rand.Next(availableParts.Count)];
+                    wrongPart.InitialStock--; 
+                    Console.WriteLine($"Случайно использована деталь: {wrongPart.PartName}. Количество на складе уменьшено.");
                 }
                 else
                 {
-                    partToUse.Quantity--;
-                    ApplyErrorPenalty(newOrder, "была использована неверная деталь");
-                    return (false, $"ОШИБКА: Использована неверная деталь! Выплачен крупный штраф.");
+                    Console.WriteLine("На складе нет других деталей для случайной замены.");
                 }
+                Console.ResetColor();
+                success = false;
             }
-
-            return (false, "Неизвестное действие.");
         }
-        catch (Exception ex)
+        else
         {
-            // Здесь можно добавить логирование ошибки
-            return (false, $"Критическая ошибка при обработке заказа: {ex.Message}");
+            player.UpdateBalance(-REFUSAL_PENALTY); 
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Отказ в обслуживании. Штраф: {REFUSAL_PENALTY:C}.");
+            Console.ResetColor();
+            success = false;
         }
+
+        _dbContext.SaveChanges();
+
+        _carsProcessedSincePurchase++;
+        CheckForPartDelivery();
+
+        Console.WriteLine($"Текущий баланс: {player.Balance:C}");
+        return success;
     }
 
-    public (bool Success, string Message) BuyParts(int partId, int quantity, decimal costPerUnit)
+    public bool BuyPart(string partName, int quantity)
     {
-        try
+        Player player = GetCurrentPlayer();
+        Part partToBuy = _dbContext.Part.FirstOrDefault(p => p.PartName == partName);
+
+        if (player == null || partToBuy == null || quantity <= 0)
         {
-            var totalCost = quantity * costPerUnit;
-            if (GetCurrentBalance() < totalCost)
-            {
-                return (false, "Недостаточно средств для покупки.");
-            }
-
-            UpdateBalance(-totalCost);
-
-            var newPurchase = new PartPurchases(partId, quantity, totalCost);
-            _dbContext.PartPurchases.Add(newPurchase);
-
-            _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
-
-            _carsProcessedSincePurchase = 0;
-
-            return (true, $"Детали куплены. Списано {totalCost} ден.ед. Доставка ожидается через 2 машины.");
+            Console.WriteLine("Ошибка покупки: Неверное имя детали, количество или игрок.");
+            return false;
         }
-        catch (Exception ex)
+
+        decimal cost = partToBuy.BuyPrice * quantity;
+
+        if (player.Balance < cost)
         {
-            return (false, $"Ошибка при закупке: {ex.Message}");
+            Console.WriteLine($"Недостаточно денег. Нужно {cost:C}, у вас только {player.Balance:C}.");
+            return false;
         }
-    }
 
-    // ===============================================
-    //               ПРИВАТНЫЕ МЕТОДЫ (теперь работают с БД)
-    // ===============================================
+        player.UpdateBalance(-cost);
 
-    private void UpdateBalance(decimal amount)
-    {
-        var balanceRecord = _dbContext.Balance.FirstOrDefault();
-        if (balanceRecord != null)
+        for (int i = 0; i < quantity; i++)
         {
-            balanceRecord.UpdateBalance(amount);
-            // SaveChanges будет вызван в основном методе, который вызвал этот.
+            player.Purchase.Add(new Purchase(player.PlayerID, partToBuy.PartID));
         }
+
+        _carsProcessedSincePurchase = 0;
+
+        _dbContext.SaveChanges();
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"Куплено {quantity} шт. '{partName}' за {cost:C}. Ожидайте доставки через {DELIVERY_THRESHOLD} машины.");
+        Console.ResetColor();
+        Console.WriteLine($"Текущий баланс: {player.Balance:C}");
+        return true;
     }
 
-    private void ProcessPenalty(int orderId, string type, decimal amount)
+    private void CheckForPartDelivery()
     {
-        var newPenalty = new Penalties(orderId, type, amount);
-        _dbContext.Penalties.Add(newPenalty);
-        UpdateBalance(-amount);
-    }
-
-    private void ApplyErrorPenalty(CustomerOrders order, string reason)
-    {
-        decimal errorPenalty = order.RepairCost * 1.5m;
-        ProcessPenalty(order.OrderID, "Неправильный ремонт", errorPenalty);
-        order.OrderStatus = "Ошибка";
-        _dbContext.CustomerOrders.Add(order);
-        _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
-    }
-
-    private void CheckAndProcessDeliveries()
-    {
-        if (_carsProcessedSincePurchase >= 2)
+        if (_carsProcessedSincePurchase >= DELIVERY_THRESHOLD)
         {
-            var pendingPurchases = _dbContext.PartPurchases.Where(p => p.DeliveryDate > p.PurchaseDate).ToList();
+            var player = GetCurrentPlayer();
+            if (player == null) return;
+
+            var pendingPurchases = _dbContext.Purchase
+                                             .Where(p => p.PlayerID == player.PlayerID)
+                                             .GroupBy(p => p.PartID)
+                                             .Select(g => new
+                                             {
+                                                 PartID = g.Key,
+                                                 InitialStock = g.Count()
+                                             })
+                                             .ToList();
 
             if (pendingPurchases.Any())
             {
-                foreach (var purchase in pendingPurchases)
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine($"\n📦 Доставка прибыла! (Обработано {DELIVERY_THRESHOLD} машины)");
+
+                foreach (var purchaseGroup in pendingPurchases)
                 {
-                    var part = _dbContext.PartsInventory.FirstOrDefault(p => p.PartID == purchase.PartID);
+                    var part = _dbContext.Part.Find(purchaseGroup.PartID);
                     if (part != null)
                     {
-                        part.Quantity += purchase.Quantity;
+                        part.InitialStock += purchaseGroup.InitialStock;
+                        Console.WriteLine($"  + {purchaseGroup.InitialStock} шт. {part.PartName}");
                     }
-                    purchase.UpdateDeliveryDate(DateTime.Now);
                 }
 
-                _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
+                var purchasesToRemove = _dbContext.Purchase.Where(p => p.PlayerID == player.PlayerID).ToList();
+                _dbContext.Purchase.RemoveRange(purchasesToRemove);
+
+                _dbContext.SaveChanges();
+
                 _carsProcessedSincePurchase = 0;
+                Console.ResetColor();
             }
         }
     }

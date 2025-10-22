@@ -57,14 +57,14 @@ namespace ISIP123_Soldatov_bd
             }
         }
         private int _quantity;
-        public int Quantity
+        public int InitialStock
         {
             get => _quantity;
             set
             {
                 if (value < 0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(Quantity), "Количество не может быть отрицательным.");
+                    throw new ArgumentOutOfRangeException(nameof(InitialStock), "Количество не может быть отрицательным.");
                 }
                 _quantity = value;
             }
@@ -76,12 +76,11 @@ namespace ISIP123_Soldatov_bd
             PartName = partName;
             BuyPrice = buyPrice;
             RepairPrice = repairPrice;  
-            Quantity = quantity;
+            InitialStock = quantity;
         }
         public Part()
         {
             this.Purchase = new HashSet<Purchase>();
         }
-
     }
 }
