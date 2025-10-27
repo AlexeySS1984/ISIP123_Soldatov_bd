@@ -33,21 +33,17 @@ namespace ISIP123_Soldatov_bd
         public System.DateTime LastUpdated { get; set; }
         public Balance(decimal initialBalance)
         {
-            // Проверка в конструкторе
             if (initialBalance < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(initialBalance), "Начальный баланс не может быть отрицательным.");
             }
 
-            // Инициализация
             CurrentBalance = initialBalance;
             LastUpdated = DateTime.Now;
         }
 
-        // Пустой конструктор для Entity Framework
         public Balance() { }
 
-        // Метод для обновления баланса (для логики игры)
         public void UpdateBalance(decimal amount)
         {
             CurrentBalance += amount;

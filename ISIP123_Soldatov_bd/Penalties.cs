@@ -22,7 +22,6 @@ namespace ISIP123_Soldatov_bd
             get => _penaltyType;
             set
             {
-                // Ограничение типа штрафа
                 var allowedTypes = new List<string> { "Отказ в обслуживании", "Неправильный ремонт" };
                 if (string.IsNullOrWhiteSpace(value) || !allowedTypes.Contains(value))
                 {

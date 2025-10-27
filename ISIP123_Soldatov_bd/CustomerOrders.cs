@@ -53,7 +53,6 @@ namespace ISIP123_Soldatov_bd
             get => _orderStatus;
             set
             {
-                // Ограничение статуса
                 var allowedStatuses = new List<string> { "Принят", "Отказано", "Выполнен", "Ошибка" };
                 if (string.IsNullOrWhiteSpace(value) || !allowedStatuses.Contains(value))
                 {
