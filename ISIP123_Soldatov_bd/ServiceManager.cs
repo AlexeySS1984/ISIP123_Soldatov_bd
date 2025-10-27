@@ -3,61 +3,46 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-// Класс-менеджер, управляющий всей логикой игры и взаимодействием с БД.
 public class ServiceManager
 {
-    // !!! ЗАМЕНИТЕ "AutoServiceContext" на имя вашего контекста из файла Model1.Context.cs
-    // Например: private readonly ISIP123_Soldatov_bdEntities _dbContext;
     private readonly AutoServiceGameEntities _dbContext;
 
     private int _carsProcessedSincePurchase = 0;
 
-    // Конструктор: Инициализация и проверка начальных данных в БД
     public ServiceManager()
     {
-        // !!! ЗАМЕНИТЕ "AutoServiceContext" на ваше имя контекста
         _dbContext = new AutoServiceGameEntities();
 
-        // Метод для создания начальных данных (баланс, детали), если база пуста
         InitializeDatabaseIfEmpty();
     }
 
-    /// <summary>
-    /// Заполняет базу данных начальными значениями, если она пуста.
-    /// </summary>
     private void InitializeDatabaseIfEmpty()
     {
-        // Проверяем, есть ли в таблице Balance хоть одна запись
         if (!_dbContext.Balance.Any())
         {
             Console.WriteLine("База данных пуста. Создание начальных данных...");
 
-            // 1. Начальный баланс
             _dbContext.Balance.Add(new Balance(10000m));
 
-            // 2. Начальный инвентарь
             _dbContext.PartsInventory.Add(new PartsInventory("Масляный фильтр", 10, 50m));
             _dbContext.PartsInventory.Add(new PartsInventory("Тормозные колодки", 5, 150m));
 
-            // Сохраняем все изменения в базу данных
             _dbContext.SaveChanges();
             Console.WriteLine("Начальные данные созданы.");
         }
     }
 
     // ===============================================
-    //               ПУБЛИЧНЫЕ МЕТОДЫ (теперь работают с БД)
+    //               ПУБЛИЧНЫЕ МЕТОДЫ 
     // ===============================================
 
     public decimal GetCurrentBalance()
     {
-        // Берем первую (и единственную) запись из таблицы Balance
         return _dbContext.Balance.FirstOrDefault()?.CurrentBalance ?? 0m;
     }
 
     public List<PartsInventory> GetInventory()
     {
-        // Получаем все записи из таблицы PartsInventory
         return _dbContext.PartsInventory.ToList();
     }
 
@@ -78,7 +63,7 @@ public class ServiceManager
                 ProcessPenalty(newOrder.OrderID, "Отказ в обслуживании", 100m);
                 newOrder.OrderStatus = "Отказано";
                 _dbContext.CustomerOrders.Add(newOrder);
-                _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
+                _dbContext.SaveChanges();
                 return (true, "Клиент отказан. Выплачен штраф 100 ден.ед.");
             }
 
@@ -98,7 +83,7 @@ public class ServiceManager
                     UpdateBalance(newOrder.RepairCost);
                     newOrder.OrderStatus = "Выполнен";
                     _dbContext.CustomerOrders.Add(newOrder);
-                    _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
+                    _dbContext.SaveChanges(); 
                     return (true, $"Ремонт успешен! Получено: {newOrder.RepairCost} ден.ед.");
                 }
                 else
@@ -113,7 +98,6 @@ public class ServiceManager
         }
         catch (Exception ex)
         {
-            // Здесь можно добавить логирование ошибки
             return (false, $"Критическая ошибка при обработке заказа: {ex.Message}");
         }
     }
@@ -133,7 +117,7 @@ public class ServiceManager
             var newPurchase = new PartPurchases(partId, quantity, totalCost);
             _dbContext.PartPurchases.Add(newPurchase);
 
-            _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
+            _dbContext.SaveChanges();
 
             _carsProcessedSincePurchase = 0;
 
@@ -146,7 +130,7 @@ public class ServiceManager
     }
 
     // ===============================================
-    //               ПРИВАТНЫЕ МЕТОДЫ (теперь работают с БД)
+    //               ПРИВАТНЫЕ МЕТОДЫ 
     // ===============================================
 
     private void UpdateBalance(decimal amount)
@@ -155,7 +139,6 @@ public class ServiceManager
         if (balanceRecord != null)
         {
             balanceRecord.UpdateBalance(amount);
-            // SaveChanges будет вызван в основном методе, который вызвал этот.
         }
     }
 
@@ -172,12 +155,12 @@ public class ServiceManager
         ProcessPenalty(order.OrderID, "Неправильный ремонт", errorPenalty);
         order.OrderStatus = "Ошибка";
         _dbContext.CustomerOrders.Add(order);
-        _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
+        _dbContext.SaveChanges(); 
     }
 
     private void CheckAndProcessDeliveries()
     {
-        if (_carsProcessedSincePurchase >= 2)
+        if (_carsProcessedSincePurchase >= 1)
         {
             var pendingPurchases = _dbContext.PartPurchases.Where(p => p.DeliveryDate > p.PurchaseDate).ToList();
 
@@ -193,7 +176,7 @@ public class ServiceManager
                     purchase.UpdateDeliveryDate(DateTime.Now);
                 }
 
-                _dbContext.SaveChanges(); // <-- СОХРАНЯЕМ ИЗМЕНЕНИЯ
+                _dbContext.SaveChanges(); 
                 _carsProcessedSincePurchase = 0;
             }
         }
