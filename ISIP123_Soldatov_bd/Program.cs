@@ -10,12 +10,93 @@ namespace ISIP123_Soldatov_bd
     internal class Program
     {
         private static Users currentUser = null;
+        private static void SeedDatabaseIfNeeded()
+        {
+            try
+            {
+                if (!Core.Context.Products.Any())
+                {
+                    Console.WriteLine("База данных пуста. Добавляем тестовые данные...");
+
+                    var category1 = new Categories { name = "Электроника", description = "Гаджеты и устройства" };
+                    var category2 = new Categories { name = "Книги", description = "Печатная продукция" };
+                    var category3 = new Categories { name = "Для дома", description = "Товары для уюта" };
+
+                    Core.Context.Categories.Add(category1);
+                    Core.Context.Categories.Add(category2);
+                    Core.Context.Categories.Add(category3);
+
+                    Core.Context.SaveChanges();
+
+                    Core.Context.Products.Add(new Products
+                    {
+                        name = "Смартфон 'Nexus'",
+                        description = "Последняя модель с отличной камерой",
+                        price = 35000.00m,
+                        stock_quantity = 50,
+                        category_id = category1.category_id
+                    });
+                    Core.Context.Products.Add(new Products
+                    {
+                        name = "Наушники 'Aura'",
+                        description = "Беспроводные наушники с шумоподавлением",
+                        price = 4500.00m,
+                        stock_quantity = 150,
+                        category_id = category1.category_id
+                    });
+                    Core.Context.Products.Add(new Products
+                    {
+                        name = "Книга 'Паттерны проектирования'",
+                        description = "Классика для разработчиков",
+                        price = 1200.50m,
+                        stock_quantity = 100,
+                        category_id = category2.category_id
+                    });
+                    Core.Context.Products.Add(new Products
+                    {
+                        name = "Кофеварка 'Morning'",
+                        description = "Начните утро правильно",
+                        price = 8900.00m,
+                        stock_quantity = 30,
+                        category_id = category3.category_id
+                    });
+
+                    Core.Context.PickupPoints.Add(new PickupPoints
+                    {
+                        name = "ПВЗ 'Центральный'",
+                        address = "ул. Ленина, д. 10",
+                        city = "Москва",
+                        working_hours = "09:00-21:00"
+                    });
+                    Core.Context.PickupPoints.Add(new PickupPoints
+                    {
+                        name = "ПВЗ 'Северный'",
+                        address = "пр. Мира, д. 150",
+                        city = "Санкт-Петербург",
+                        working_hours = "10:00-20:00"
+                    });
+
+                    Core.Context.SaveChanges();
+
+                    Console.WriteLine("Тестовые данные (товары, категории, ПВЗ) успешно добавлены.");
+                    Pause();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Критическая ошибка при проверке или заполнении БД: {ex.Message}");
+                Console.WriteLine("Пожалуйста, убедитесь, что строка подключения в App.config верна и БД доступна.");
+                Console.WriteLine("Нажмите любую клавишу для выхода...");
+                Console.ReadKey();
+                Environment.Exit(1);
+            }
+        }
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
             Console.InputEncoding = Encoding.UTF8;
 
-            //SeedDatabaseIfNeeded();
+            SeedDatabaseIfNeeded();
 
             while (true)
             {
