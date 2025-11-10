@@ -46,7 +46,7 @@ namespace ISIP123_Soldatov_bd
             switch (choice)
             {
                 case "1":
-                    //ViewProducts();
+                    ViewProducts();
                     break;
                 case "2":
                     RegisterUser();
@@ -78,7 +78,7 @@ namespace ISIP123_Soldatov_bd
             switch (choice)
             {
                 case "1":
-                    //ViewProducts();
+                    ViewProducts();
                     break;
                 case "2":
                     //ViewCart();
@@ -173,6 +173,29 @@ namespace ISIP123_Soldatov_bd
                 Console.WriteLine("Неверный логин или пароль.");
             }
         }
+        // 3. Просмотр товаров
+        private static void ViewProducts()
+        {
+            Console.WriteLine("== Список доступных товаров ==");
+            var products = Core.Context.Products.Include(p => p.Categories).ToList();
+
+            foreach (var p in products)
+            {
+                string categoryName = p.Categories != null ? p.Categories.name : "Без категории";
+                Console.WriteLine($"ID: {p.product_id} | {p.name} | Цена: {p.price:C} | Остаток: {p.stock_quantity} | Категория: {categoryName}");
+            }
+
+            if (currentUser != null)
+            {
+                Console.WriteLine("------------------------------------------");
+                Console.Write("Введите ID товара, чтобы добавить в корзину (или 0 для выхода): ");
+                if (int.TryParse(Console.ReadLine(), out int productId) && productId != 0)
+                {
+                    //AddProductToCart(productId);
+                }
+            }
+        }
+
 
 
         #endregion
