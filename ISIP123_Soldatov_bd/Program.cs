@@ -52,7 +52,7 @@ namespace ISIP123_Soldatov_bd
                     RegisterUser();
                     break;
                 case "3":
-                    //LoginUser();
+                    LoginUser();
                     break;
                 case "4":
                     Environment.Exit(0);
@@ -151,6 +151,29 @@ namespace ISIP123_Soldatov_bd
                 Console.WriteLine($"Ошибка при регистрации: {ex.Message}");
             }
         }
+        // 2. Вход
+        private static void LoginUser()
+        {
+            Console.WriteLine("== Вход в аккаунт ==");
+            Console.Write("Введите имя пользователя (login): ");
+            string username = Console.ReadLine();
+            Console.Write("Введите пароль: ");
+            string pass = Console.ReadLine();
+
+
+            var user = Core.Context.Users.FirstOrDefault(u => u.username == username && u.password_hash == pass);
+
+            if (user != null)
+            {
+                currentUser = user;
+                Console.WriteLine($"Добро пожаловать, {currentUser.first_name ?? currentUser.username}!");
+            }
+            else
+            {
+                Console.WriteLine("Неверный логин или пароль.");
+            }
+        }
+
 
         #endregion
 
