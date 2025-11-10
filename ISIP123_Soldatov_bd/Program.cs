@@ -49,7 +49,7 @@ namespace ISIP123_Soldatov_bd
                     //ViewProducts();
                     break;
                 case "2":
-                    //RegisterUser();
+                    RegisterUser();
                     break;
                 case "3":
                     //LoginUser();
@@ -101,6 +101,59 @@ namespace ISIP123_Soldatov_bd
         }
 
         #endregion
+
+        #region Функции
+        // 1. Регистрация
+        private static void RegisterUser()
+        {
+            Console.WriteLine("== Регистрация нового пользователя ==");
+            Console.Write("Введите имя пользователя (login): ");
+            string username = Console.ReadLine();
+            Console.Write("Введите Email: ");
+            string email = Console.ReadLine();
+            Console.Write("Введите пароль: ");
+            string pass1 = Console.ReadLine();
+            Console.Write("Подтвердите пароль: ");
+            string pass2 = Console.ReadLine();
+
+            if (pass1 != pass2)
+            {
+                Console.WriteLine("Ошибка: Пароли не совпадают.");
+                return;
+            }
+
+            if (Core.Context.Users.Any(u => u.username == username || u.email == email))
+            {
+                Console.WriteLine("Ошибка: Пользователь с таким логином или Email уже существует.");
+                return;
+            }
+
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(pass1);
+
+            try
+            {
+                Users newUser = new Users
+                {
+                    username = username,
+                    email = email,
+                    password_hash = hashedPassword,
+                    first_name = "Новый",
+                    last_name = "Пользователь",
+                    created_at = DateTime.Now
+                };
+
+                Core.Context.Users.Add(newUser);
+                Core.Context.SaveChanges();
+                Console.WriteLine("Регистрация прошла успешно!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при регистрации: {ex.Message}");
+            }
+        }
+
+        #endregion
+
         private static void Pause()
         {
             Console.WriteLine("\nНажмите любую клавишу для продолжения...");
