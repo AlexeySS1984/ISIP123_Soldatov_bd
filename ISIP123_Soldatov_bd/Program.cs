@@ -87,7 +87,7 @@ namespace ISIP123_Soldatov_bd
                     Checkout();
                     break;
                 case "4":
-                    //ViewMyOrders();
+                    ViewMyOrders();
                     break;
                 case "5":
                     currentUser = null;
@@ -311,7 +311,6 @@ namespace ISIP123_Soldatov_bd
                 return;
             }
 
-            // 6.3. Создание заказа
             using (var transaction = Core.Context.Database.BeginTransaction())
             {
                 try
@@ -357,6 +356,39 @@ namespace ISIP123_Soldatov_bd
                 {
                     transaction.Rollback();
                     Console.WriteLine($"Ошибка при оформлении заказа: {ex.Message}");
+                }
+            }
+        }
+        // 7. Просмотр заказов
+        private static void ViewMyOrders()
+        {
+            Console.WriteLine("== Мои заказы ==");
+
+            var orders = Core.Context.Orders
+                .Where(o => o.user_id == currentUser.user_id)
+                .OrderByDescending(o => o.created_at)
+                .Include(o => o.PickupPoints)
+                .Include(o => o.OrderItems.Select(oi => oi.Products))
+                .ToList();
+
+            if (!orders.Any())
+            {
+                Console.WriteLine("У вас пока нет заказов.");
+                return;
+            }
+
+            foreach (var order in orders)
+            {
+                Console.WriteLine("-----------------------------------");
+                Console.WriteLine($"Заказ ID: {order.order_id} от {order.created_at:dd.MM.yyyy HH:mm}");
+                Console.WriteLine($"Статус: {order.status}");
+                Console.WriteLine($"Пункт выдачи: {order.PickupPoints.name}, {order.PickupPoints.address}");
+                Console.WriteLine($"Сумма заказа: {order.total_amount:C}");
+
+                Console.WriteLine("Состав заказа:");
+                foreach (var item in order.OrderItems)
+                {
+                    Console.WriteLine($"  - {item.Products.name} (x{item.quantity}) по цене {item.price_at_purchase:C}");
                 }
             }
         }
