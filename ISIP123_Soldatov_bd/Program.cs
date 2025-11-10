@@ -191,8 +191,60 @@ namespace ISIP123_Soldatov_bd
                 Console.Write("Введите ID товара, чтобы добавить в корзину (или 0 для выхода): ");
                 if (int.TryParse(Console.ReadLine(), out int productId) && productId != 0)
                 {
-                    //AddProductToCart(productId);
+                    AddProductToCart(productId);
                 }
+            }
+        }
+        // 4. Добавление в корзину
+        private static void AddProductToCart(int productId)
+        {
+            var product = Core.Context.Products.Find(productId);
+            if (product == null)
+            {
+                Console.WriteLine("Товар не найден.");
+                return;
+            }
+
+            Console.Write($"Введите количество (доступно: {product.stock_quantity}): ");
+            if (!int.TryParse(Console.ReadLine(), out int quantity) || quantity <= 0)
+            {
+                Console.WriteLine("Неверное количество.");
+                return;
+            }
+
+            if (quantity > product.stock_quantity)
+            {
+                Console.WriteLine("Недостаточно товара на складе.");
+                return;
+            }
+
+            try
+            {
+                var cartItem = Core.Context.CartItems.FirstOrDefault(ci =>
+                    ci.user_id == currentUser.user_id && ci.product_id == productId);
+
+                if (cartItem != null)
+                {
+                    cartItem.quantity += quantity;
+                }
+                else
+                {
+                    cartItem = new CartItems
+                    {
+                        user_id = currentUser.user_id,
+                        product_id = productId,
+                        quantity = quantity,
+                        added_at = DateTime.Now
+                    };
+                    Core.Context.CartItems.Add(cartItem);
+                }
+
+                Core.Context.SaveChanges();
+                Console.WriteLine($"Товар '{product.name}' (x{quantity}) добавлен в корзину.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка добавления в корзину: {ex.Message}");
             }
         }
 
