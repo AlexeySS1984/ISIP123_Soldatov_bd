@@ -84,7 +84,7 @@ namespace ISIP123_Soldatov_bd
                     ViewCart();
                     break;
                 case "3":
-                    //Checkout();
+                    Checkout();
                     break;
                 case "4":
                     //ViewMyOrders();
@@ -272,6 +272,93 @@ namespace ISIP123_Soldatov_bd
             }
 
             Console.WriteLine($"--------------------\nИтого: {total:C}");
+        }
+        // 6. Оформление заказа 
+        private static void Checkout()
+        {
+            Console.WriteLine("== Оформление заказа ==");
+            var cartItems = Core.Context.CartItems
+                .Include(ci => ci.Products)
+                .Where(ci => ci.user_id == currentUser.user_id)
+                .ToList();
+
+            if (!cartItems.Any())
+            {
+                Console.WriteLine("Нечего оформлять. Корзина пуста.");
+                return;
+            }
+
+            foreach (var item in cartItems)
+            {
+                if (item.quantity > item.Products.stock_quantity)
+                {
+                    Console.WriteLine($"Ошибка: Недостаточно товара '{item.Products.name}'. В наличии: {item.Products.stock_quantity}.");
+                    return;
+                }
+            }
+
+            var points = Core.Context.PickupPoints.ToList();
+            Console.WriteLine("Выберите пункт выдачи:");
+            foreach (var p in points)
+            {
+                Console.WriteLine($"ID: {p.point_id} | {p.name} ({p.address}, {p.city})");
+            }
+
+            Console.Write("Введите ID пункта выдачи: ");
+            if (!int.TryParse(Console.ReadLine(), out int pointId) || !Core.Context.PickupPoints.Any(p => p.point_id == pointId))
+            {
+                Console.WriteLine("Неверный ID пункта выдачи.");
+                return;
+            }
+
+            // 6.3. Создание заказа
+            using (var transaction = Core.Context.Database.BeginTransaction())
+            {
+                try
+                {
+                    decimal totalAmount = cartItems.Sum(item => item.quantity * item.Products.price);
+
+                    Orders newOrder = new Orders
+                    {
+                        user_id = currentUser.user_id,
+                        point_id = pointId,
+                        status = "Pending",
+                        total_amount = totalAmount,
+                        created_at = DateTime.Now
+                    };
+                    Core.Context.Orders.Add(newOrder);
+                    Core.Context.SaveChanges();
+
+                    foreach (var cartItem in cartItems)
+                    {
+                        OrderItems orderItem = new OrderItems
+                        {
+                            order_id = newOrder.order_id,
+                            product_id = cartItem.product_id,
+                            quantity = cartItem.quantity,
+                            price_at_purchase = cartItem.Products.price
+                        };
+                        Core.Context.OrderItems.Add(orderItem);
+
+                        var productInDb = Core.Context.Products.Find(cartItem.product_id);
+                        productInDb.stock_quantity -= cartItem.quantity;
+                    }
+
+                    Core.Context.CartItems.RemoveRange(cartItems);
+
+                    Core.Context.SaveChanges();
+
+                    transaction.Commit();
+
+                    Console.WriteLine($"Успех! Ваш заказ (ID: {newOrder.order_id}) на сумму {totalAmount:C} оформлен.");
+                    Console.WriteLine($"Пункт выдачи: {points.First(p => p.point_id == pointId).name}");
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    Console.WriteLine($"Ошибка при оформлении заказа: {ex.Message}");
+                }
+            }
         }
 
 
