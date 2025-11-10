@@ -81,7 +81,7 @@ namespace ISIP123_Soldatov_bd
                     ViewProducts();
                     break;
                 case "2":
-                    //ViewCart();
+                    ViewCart();
                     break;
                 case "3":
                     //Checkout();
@@ -248,6 +248,31 @@ namespace ISIP123_Soldatov_bd
             }
         }
 
+        // 5. Просмотр корзины
+        private static void ViewCart()
+        {
+            Console.WriteLine("== Моя корзина ==");
+            var cartItems = Core.Context.CartItems
+                .Include(ci => ci.Products)
+                .Where(ci => ci.user_id == currentUser.user_id)
+                .ToList();
+
+            if (!cartItems.Any())
+            {
+                Console.WriteLine("Ваша корзина пуста.");
+                return;
+            }
+
+            decimal total = 0;
+            foreach (var item in cartItems)
+            {
+                decimal subtotal = item.quantity * item.Products.price;
+                Console.WriteLine($"- Товар: {item.Products.name} | Кол-во: {item.quantity} | Цена: {item.Products.price:C} | Сумма: {subtotal:C}");
+                total += subtotal;
+            }
+
+            Console.WriteLine($"--------------------\nИтого: {total:C}");
+        }
 
 
         #endregion
